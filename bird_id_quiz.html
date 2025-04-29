@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bird ID Quiz</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #f0f8ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #2c3e50;
+    }
+    select, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 16px;
+    }
+    #quiz {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+    #bird-img {
+      width: 90%;
+      max-width: 400px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .option-button {
+      background-color: #ecf0f1;
+      border: 1px solid #bdc3c7;
+      border-radius: 5px;
+      margin: 5px;
+      padding: 10px;
+      cursor: pointer;
+      width: 200px;
+    }
+    .correct { background-color: #2ecc71 !important; }
+    .incorrect { background-color: #e74c3c !important; }
+  </style>
+</head>
+<body>
+  <h1>Bird ID Quiz</h1>
+  <div id="setup">
+    <label for="species-select">Select bird species:</label><br />
+    <select id="species-select" multiple size="5">
+      <option value="European_Stork">European Stork</option>
+      <option value="White-tailed_Eagle">White-tailed Eagle</option>
+      <option value="Common_Blackbird">Common Blackbird</option>
+      <option value="Barn_Swallow">Barn Swallow</option>
+      <option value="European_Robin">European Robin</option>
+    </select><br />
+    <button onclick="startQuiz()">Start Quiz</button>
+  </div>
+
+  <div id="quiz">
+    <img id="bird-img" src="" alt="Bird Image" />
+    <div id="options"></div>
+    <button onclick="nextQuestion()">Next</button>
+  </div>
+
+  <script>
+    const allSpecies = {
+      European_Stork: "European Stork",
+      "White-tailed_Eagle": "White-tailed Eagle",
+      Common_Blackbird: "Common Blackbird",
+      Barn_Swallow: "Barn Swallow",
+      European_Robin: "European Robin",
+    };
+
+    let selectedSpecies = [];
+    let currentImage = null;
+    let correctAnswer = "";
+
+    async function fetchImage(title) {
+      const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${title}&prop=pageimages&format=json&pithumbsize=800&origin=*`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const page = Object.values(data.query.pages)[0];
+      return page.thumbnail ? page.thumbnail.source : null;
+    }
+
+    async function startQuiz() {
+      const select = document.getElementById("species-select");
+      selectedSpecies = Array.from(select.selectedOptions).map(opt => opt.value);
+      if (selectedSpecies.length < 2) {
+        alert("Select at least two species to start the quiz.");
+        return;
+      }
+      document.getElementById("setup").style.display = "none";
+      document.getElementById("quiz").style.display = "flex";
+      await nextQuestion();
+    }
+
+    async function nextQuestion() {
+      const bird = selectedSpecies[Math.floor(Math.random() * selectedSpecies.length)];
+      correctAnswer = bird;
+      currentImage = await fetchImage(bird);
+      document.getElementById("bird-img").src = currentImage || "https://via.placeholder.com/300x200?text=No+Image";
+      showOptions();
+    }
+
+    function showOptions() {
+      const opts = shuffle([...selectedSpecies].slice(0, 3));
+      if (!opts.includes(correctAnswer)) opts[0] = correctAnswer;
+      const optionHTML = opts.map(opt =>
+        `<button class="option-button" onclick="checkAnswer('${opt}')">${allSpecies[opt]}</button>`
+      ).join("");
+      document.getElementById("options").innerHTML = optionHTML;
+    }
+
+    function checkAnswer(selected) {
+      const buttons = document.querySelectorAll(".option-button");
+      buttons.forEach(btn => {
+        if (btn.textContent === allSpecies[correctAnswer]) {
+          btn.classList.add("correct");
+        } else if (btn.textContent === allSpecies[selected]) {
+          btn.classList.add("incorrect");
+        }
+        btn.disabled = true;
+      });
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+  </script>
+</body>
+</html>
